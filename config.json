@@ -1,0 +1,78 @@
+{
+  "telegram": {
+    "api_id": "29258818",
+    "api_hash": "f2fd012c535a14bac3ca80b107362126",
+    "session_name": "eugenbot_monitor"
+  },
+  "monitored_bots": {
+    "mexcTracker": {
+      "username": "mexcTracker",
+      "enabled": true,
+      "pattern": "(\\w+)\\s+\\|\\s+[\\d.]+%\\s+\\|\\s+(Long|Short)",
+      "dex_pattern": "dexscreener\\.com/(\\w+)/([a-fA-F0-9x]+)",
+      "description": "MEXC/GATE Futures <> DEX арбитраж"
+    },
+    "kormushka_mexc": {
+      "username": "kormushka_mexc",
+      "enabled": true,
+      "pattern": "(\\w+)\\s+\\+[\\d.]+%\\s+in\\s+\\d+\\s+secs!",
+      "dex_pattern": "gmgn\\.ai/(\\w+)/token/([a-fA-F0-9x]+)",
+      "description": "MEXC ценовые аномалии"
+    },
+    "pumply_futures_dex": {
+      "username": "pumply_futures_dex",
+      "enabled": true,
+      "pattern": "🔻\\s+(SHORT|LONG)\\s+\\$(\\w+)\\s+\\+[\\d.]+%\\s+on\\s+MEXC",
+      "dex_pattern": "dexscreener\\.com/(\\w+)/([a-fA-F0-9x]+)",
+      "description": "MEXC ⇄ DEX спреды"
+    },
+    "MexcDexSpreadTracker": {
+      "username": "MexcDexSpreadTracker",
+      "enabled": true,
+      "pattern": "(🔴|🟢)\\s+(SHORT|LONG)\\?\\s+#(\\w+)\\s+Spread",
+      "dex_pattern": "gmgn\\.ai/(\\w+)/token/([a-fA-F0-9x]+)",
+      "description": "MEXC DEX Spread Tracker - арбитражные возможности"
+    }
+  },
+  "settings": {
+    "auto_copy_clipboard": true,
+    "auto_open_gmgn": true,
+    "log_level": "INFO",
+    "stats_interval": 10,
+    "max_errors": 100
+  },
+  "notifications": {
+    "enabled": true,
+    "sound": true,
+    "desktop": true
+  },
+  "blacklist": {
+    "enabled": true,
+    "tickers": [
+      "BTC",
+      "ETH",
+      "USDT",
+      "USDC",
+      "BNB",
+      "ADA",
+      "SOL",
+      "DOT",
+      "MATIC",
+      "AVAX",
+      "FLOKI",
+      "KOMA",
+      "THE",
+      "BROCCOLI",
+      "BOBBSC",
+      "TST",
+      "DONKEY",
+      "MBOX",
+      "TSTBSC",
+      "FORM",
+      "ALPHA",
+      "STREAMER",
+      "GIGGLE",
+      "CLIPPY"
+    ]
+  }
+}
