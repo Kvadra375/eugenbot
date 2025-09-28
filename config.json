@@ -74,5 +74,10 @@
       "GIGGLE",
       "CLIPPY"
     ]
+  },
+  "deduplication": {
+    "enabled": true,
+    "window_minutes": 5,
+    "description": "Предотвращает обработку одного тикера несколько раз в течение указанного времени"
   }
 }

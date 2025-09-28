@@ -57,6 +57,7 @@ class AdvancedBotMonitor:
             'messages_processed': 0,
             'tickers_found': 0,
             'blacklisted_tickers': 0,
+            'duplicated_tickers': 0,
             'errors': 0,
             'start_time': None,
             'last_activity': None
@@ -65,15 +66,28 @@ class AdvancedBotMonitor:
         # Черный список
         self.blacklist_enabled = self.config.get('blacklist', {}).get('enabled', False)
         self.blacklisted_tickers = set(self.config.get('blacklist', {}).get('tickers', []))
+        
+        # Система дедупликации тикеров
+        self.deduplication_enabled = self.config.get('deduplication', {}).get('enabled', True)
+        self.deduplication_window = self.config.get('deduplication', {}).get('window_minutes', 5)
+        self.recent_tickers = {}  # {ticker: timestamp}
+        self.max_deduplication_entries = 1000
+        
+        # Кэш для избежания дублирования
+        self.processed_messages = set()
+        self.max_cache_size = 1000
+        
+        # Логирование настроек
         if self.blacklist_enabled:
             self.logger.info(f"🚫 Черный список активен: {len(self.blacklisted_tickers)} тикеров")
             self.logger.info(f"📋 Заблокированные тикеры: {', '.join(sorted(self.blacklisted_tickers))}")
         else:
             self.logger.info("✅ Черный список отключен")
         
-        # Кэш для избежания дублирования
-        self.processed_messages = set()
-        self.max_cache_size = 1000
+        if self.deduplication_enabled:
+            self.logger.info(f"🔄 Дедупликация активна: окно {self.deduplication_window} мин")
+        else:
+            self.logger.info("✅ Дедупликация отключена")
 
     def load_config(self, config_file: str) -> Dict:
         """Загружает конфигурацию из файла"""
@@ -112,6 +126,50 @@ class AdvancedBotMonitor:
         
         return is_blacklisted
 
+    def is_ticker_recently_processed(self, ticker: str) -> bool:
+        """Проверяет, был ли тикер недавно обработан"""
+        if not self.deduplication_enabled:
+            return False
+        
+        ticker_upper = ticker.upper()
+        current_time = datetime.now()
+        
+        # Очищаем старые записи
+        self._cleanup_old_tickers(current_time)
+        
+        # Проверяем, есть ли тикер в недавних
+        if ticker_upper in self.recent_tickers:
+            last_processed = self.recent_tickers[ticker_upper]
+            time_diff = (current_time - last_processed).total_seconds() / 60  # в минутах
+            
+            if time_diff < self.deduplication_window:
+                self.stats['duplicated_tickers'] += 1
+                self.logger.info(f"🔄 Тикер {ticker} уже обработан {time_diff:.1f} мин назад - пропускаем")
+                return True
+        
+        # Добавляем тикер в недавние
+        self.recent_tickers[ticker_upper] = current_time
+        
+        # Ограничиваем размер кэша
+        if len(self.recent_tickers) > self.max_deduplication_entries:
+            # Удаляем самые старые записи
+            oldest_tickers = sorted(self.recent_tickers.items(), key=lambda x: x[1])[:100]
+            for old_ticker, _ in oldest_tickers:
+                del self.recent_tickers[old_ticker]
+        
+        return False
+
+    def _cleanup_old_tickers(self, current_time: datetime):
+        """Очищает старые записи из кэша дедупликации"""
+        old_tickers = []
+        for ticker, timestamp in self.recent_tickers.items():
+            time_diff = (current_time - timestamp).total_seconds() / 60
+            if time_diff >= self.deduplication_window:
+                old_tickers.append(ticker)
+        
+        for ticker in old_tickers:
+            del self.recent_tickers[ticker]
+
     def extract_ticker_data(self, message: str, bot_name: str) -> Optional[Dict]:
         """Извлекает данные тикера из сообщения"""
         try:
@@ -140,6 +198,10 @@ class AdvancedBotMonitor:
             
             # Проверяем черный список
             if self.is_ticker_blacklisted(ticker):
+                return None
+            
+            # Проверяем дедупликацию
+            if self.is_ticker_recently_processed(ticker):
                 return None
             
             # Ищем контракт и сеть в сообщении
@@ -466,6 +528,7 @@ class AdvancedBotMonitor:
         self.logger.info(f"📊 Статистика: Обработано {self.stats['messages_processed']} сообщений, "
                         f"найдено {self.stats['tickers_found']} тикеров, "
                         f"заблокировано {self.stats['blacklisted_tickers']} тикеров, "
+                        f"дубликатов {self.stats['duplicated_tickers']} тикеров, "
                         f"ошибок {self.stats['errors']}, время работы: {uptime}, "
                         f"последняя активность: {last_activity}")
 
